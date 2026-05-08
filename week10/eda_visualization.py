@@ -34,7 +34,7 @@ st.markdown("**HTTP 요청 텍스트에서 공격 패턴을 찾아봅시다!**")
 # ============================================================
 @st.cache_data
 def load_data():
-    data_path = os.path.join(os.path.dirname(__file__), "csic2010_requests.csv")
+    data_path = os.path.join(os.path.dirname(__file__), "csic2010_requests60000.csv")
     df = pd.read_csv(data_path)
 
     # 기본 특성 추출
