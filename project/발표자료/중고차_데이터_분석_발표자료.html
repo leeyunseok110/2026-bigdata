@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>중고차 데이터 분석 및 가격 예측 서비스</title>
+  <style>
+    :root {
+      --ink: #18202a;
+      --muted: #5b6770;
+      --paper: #f8f7f3;
+      --panel: #ffffff;
+      --line: #d6d2c8;
+      --blue: #1976d2;
+      --orange: #e88741;
+      --green: #2f8c5c;
+      --red: #c44646;
+      --deep: #102337;
+      --deep-2: #173a5a;
+      --shadow: 0 24px 70px rgba(16, 35, 55, 0.24);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #0b1520;
+      color: var(--ink);
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", Arial, sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    .deck {
+      position: relative;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: 44px 62px 38px;
+      background:
+        linear-gradient(90deg, rgba(24, 32, 42, 0.035) 1px, transparent 1px) 0 0 / 92px 92px,
+        var(--paper);
+    }
+
+    .slide.active {
+      display: block;
+      animation: settle 280ms ease-out;
+    }
+
+    .slide.dark {
+      color: #fff;
+      background:
+        linear-gradient(145deg, var(--deep) 0%, #12314d 48%, #0b1827 100%);
+    }
+
+    @keyframes settle {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .kicker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      margin-bottom: 18px;
+    }
+
+    .kicker::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      background: var(--orange);
+      display: inline-block;
+    }
+
+    .page-no {
+      position: absolute;
+      top: 32px;
+      right: 64px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 850px;
+      font-size: 56px;
+      line-height: 1.08;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      max-width: 920px;
+      font-size: 36px;
+      line-height: 1.18;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 980px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+      font-weight: 500;
+    }
+
+    .dark .subtitle,
+    .dark .muted,
+    .dark .source,
+    .dark .page-no {
+      color: #dbe7f1;
+    }
+
+    .cover-label {
+      color: #bcd2e6;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 54px;
+    }
+
+    .cover-title {
+      max-width: 790px;
+      font-size: 64px;
+      line-height: 1.04;
+    }
+
+    .cover-subtitle {
+      max-width: 770px;
+      margin-top: 28px;
+      color: #dae4ec;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      width: 820px;
+      margin-top: 74px;
+    }
+
+    .metric-row.four {
+      width: 100%;
+      grid-template-columns: repeat(4, 1fr);
+      margin-top: 34px;
+    }
+
+    .metric {
+      min-height: 116px;
+      padding: 17px 18px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+    }
+
+    .metric.blue {
+      background: #ebf4fb;
+    }
+
+    .metric.orange {
+      background: #fff1e5;
+    }
+
+    .metric.green {
+      background: #e9f6ef;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 27px;
+      line-height: 1.1;
+      margin-bottom: 9px;
+      color: var(--deep);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .presenter {
+      position: absolute;
+      left: 70px;
+      bottom: 44px;
+      color: #dbe7f1;
+      font-size: 13px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 42px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 34px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 18px 20px;
+      min-height: 108px;
+    }
+
+    .card.check {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .checkmark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      background: #e9f6ef;
+      color: var(--green);
+      font-size: 23px;
+      font-weight: 900;
+    }
+
+    .card h3 {
+      color: var(--ink);
+      font-size: 17px;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .card p,
+    .callout p,
+    li {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .note-bar {
+      margin-top: 26px;
+      padding: 18px 22px;
+      border-left: 5px solid var(--blue);
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 42px;
+      position: relative;
+    }
+
+    .flow-card {
+      min-height: 112px;
+      padding: 17px 16px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      position: relative;
+    }
+
+    .flow-card:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -22px;
+      top: 42px;
+      z-index: 2;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 22px;
+    }
+
+    .flow-card h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .source {
+      position: absolute;
+      left: 64px;
+      bottom: 26px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .bullets {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .bullets li {
+      margin-bottom: 8px;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 34px;
+      margin-top: 38px;
+    }
+
+    .chart-box {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--line);
+      padding: 18px 20px 20px;
+      min-height: 360px;
+    }
+
+    .chart-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 18px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 92px 1fr 46px;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .bar-track {
+      height: 12px;
+      background: #e8e4da;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: var(--blue);
+    }
+
+    .line-chart {
+      width: 100%;
+      height: 260px;
+      display: block;
+    }
+
+    .axis-label {
+      fill: var(--muted);
+      font-size: 11px;
+      font-family: "Malgun Gothic", Arial, sans-serif;
+    }
+
+    .chart-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 38px;
+      margin-top: 34px;
+      align-items: start;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .accent-blue {
+      color: var(--blue);
+    }
+
+    .accent-green {
+      color: var(--green);
+    }
+
+    .accent-orange {
+      color: var(--orange);
+    }
+
+    .accent-red {
+      color: var(--red);
+    }
+
+    .dark-list {
+      margin-top: 44px;
+      padding-left: 0;
+      list-style: none;
+      max-width: 980px;
+    }
+
+    .dark-list li {
+      color: #e6eef5;
+      font-size: 19px;
+      line-height: 1.56;
+      margin-bottom: 14px;
+      padding-left: 24px;
+      position: relative;
+    }
+
+    .dark-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 8px;
+      height: 8px;
+      background: var(--orange);
+    }
+
+    .controls {
+      position: absolute;
+      left: 50%;
+      bottom: 12px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(11, 21, 32, 0.64);
+      backdrop-filter: blur(10px);
+      color: #eaf2f8;
+      font-size: 12px;
+      z-index: 5;
+    }
+
+    button {
+      border: 0;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      width: 30px;
+      height: 28px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      z-index: 6;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--orange);
+      transition: width 220ms ease;
+    }
+
+    .notes {
+      position: absolute;
+      right: 18px;
+      bottom: 56px;
+      width: 360px;
+      max-height: 260px;
+      overflow: auto;
+      padding: 16px 18px;
+      background: rgba(16, 35, 55, 0.92);
+      color: #eaf2f8;
+      font-size: 13px;
+      line-height: 1.6;
+      display: none;
+      z-index: 7;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25);
+    }
+
+    .notes.show {
+      display: block;
+    }
+
+    .notes strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .help {
+      position: absolute;
+      top: 14px;
+      left: 18px;
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 11px;
+      z-index: 5;
+      user-select: none;
+    }
+
+    @media print {
+      html,
+      body {
+        overflow: visible;
+        background: #fff;
+        display: block;
+      }
+
+      .deck {
+        width: 100%;
+        height: auto;
+        box-shadow: none;
+      }
+
+      .slide {
+        position: relative;
+        display: block !important;
+        width: 100vw;
+        height: 56.25vw;
+        page-break-after: always;
+      }
+
+      .controls,
+      .progress,
+      .notes,
+      .help {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-live="polite">
+    <div class="help">←/→ 이동 · N 메모 · F 전체화면</div>
+
+    <section class="slide dark active" data-note="기본 질문을 먼저 던지고 시작합니다. '이 차가 싼지 비싼지 판단할 기준을 데이터로 만들어보는 프로젝트'라고 말하면 됩니다.">
+      <p class="cover-label">BIGDATA FINAL PROJECT</p>
+      <h1 class="cover-title">이 중고차,<br />지금 가격이 괜찮은 걸까?</h1>
+      <p class="cover-subtitle">매물 데이터를 분석하고, 조건별 참고 가격을 확인하는 Streamlit 서비스를 만들었습니다.</p>
+      <div class="metric-row">
+        <div class="metric blue">
+          <strong>9,273</strong>
+          <span>확장 데이터 행 수</span>
+          <small>Kaggle 4,009행 + 보조 샘플</small>
+        </div>
+        <div class="metric orange">
+          <strong>핵심 4단계</strong>
+          <span>발표 흐름</span>
+          <small>데이터 → EDA → 예측 → 추천</small>
+        </div>
+        <div class="metric green">
+          <strong>R² 0.677</strong>
+          <span>참고 가격대 모델</span>
+          <small>RandomForestRegressor</small>
+        </div>
+      </div>
+      <p class="presenter">발표자: 이윤석</p>
+    </section>
+
+    <section class="slide" data-note="문제 정의 슬라이드입니다. 중고차는 가격 하나만 보면 안 되고 조건 조합이 중요하다는 점을 짚습니다.">
+      <span class="page-no">02</span>
+      <div class="kicker">문제</div>
+      <h2>중고차 가격은 숫자 하나만 보고 판단하기 어렵습니다.</h2>
+      <p class="subtitle">같은 브랜드라도 연식, 주행거리, 사고 이력에 따라 가격 차이가 커집니다.</p>
+      <div class="grid-2">
+        <div class="card check">
+          <div class="checkmark">✓</div>
+          <div>
+            <h3>비교 기준 부족</h3>
+            <p>매물 가격이 싼지 비싼지 바로 판단하기 어렵습니다.</p>
+          </div>
+        </div>
+        <div class="card check">
+          <div class="checkmark">✓</div>
+          <div>
+            <h3>조건 조합 복잡</h3>
+            <p>브랜드, 모델, 연식, 주행거리가 함께 가격을 흔듭니다.</p>
+          </div>
+        </div>
+        <div class="card check">
+          <div class="checkmark">✓</div>
+          <div>
+            <h3>평균의 함정</h3>
+            <p>초고가 매물이 섞이면 일반 가격대가 흐려집니다.</p>
+          </div>
+        </div>
+        <div class="card check">
+          <div class="checkmark">✓</div>
+          <div>
+            <h3>앱으로 비교</h3>
+            <p>조건 입력, 참고 가격대, 유사 매물 비교 흐름으로 구성했습니다.</p>
+          </div>
+        </div>
+      </div>
+      <div class="note-bar">핵심 질문: 입력한 차량 조건이 시장 데이터 안에서 어느 정도 가격대로 보이는가?</div>
+    </section>
+
+    <section class="slide" data-note="Kaggle이 기본 데이터이고 CARFAX/EPA/NHTSA는 보조 데이터라는 구조를 분명히 말합니다. CARFAX는 실시간 시세가 아닙니다.">
+      <span class="page-no">03</span>
+      <div class="kicker">데이터</div>
+      <h2>Kaggle 데이터를 기본으로 사용하고, 외부 정보는 보조로 붙였습니다.</h2>
+      <p class="subtitle">가격대 비교는 매물 조건 중심, 추천과 판독은 연비·리콜 정보까지 참고했습니다.</p>
+      <div class="metric-row four">
+        <div class="metric">
+          <strong>4,009</strong>
+          <span>Kaggle 원본</span>
+          <small>Used Car Price Prediction</small>
+        </div>
+        <div class="metric blue">
+          <strong>9,273</strong>
+          <span>확장 데이터</span>
+          <small>앱에서 우선 사용</small>
+        </div>
+        <div class="metric orange">
+          <strong>4,296</strong>
+          <span>EPA 매칭 성공</span>
+          <small>연비 / 연료 비용</small>
+        </div>
+        <div class="metric green">
+          <strong>4,079</strong>
+          <span>NHTSA 매칭 성공</span>
+          <small>리콜 위험 참고</small>
+        </div>
+      </div>
+      <div class="flow">
+        <div class="flow-card">
+          <h3>Kaggle 매물</h3>
+          <p>브랜드, 모델, 연식, 주행거리, 가격</p>
+        </div>
+        <div class="flow-card">
+          <h3>CARFAX 샘플</h3>
+          <p>실시간 시세가 아닌 최신 연식 보조 샘풀</p>
+        </div>
+        <div class="flow-card">
+          <h3>EPA/NHTSA</h3>
+          <p>브랜드·모델·연식 기준 가능한 항목 매칭</p>
+        </div>
+        <div class="flow-card">
+          <h3>앱 기능</h3>
+          <p>참고 가격, 추천, 구입 판독에 사용</p>
+        </div>
+      </div>
+      <p class="source">Source: Kaggle - Used Car Price Prediction Dataset by Taeef Najib<br />Additional data: CARFAX sample, EPA vehicle data, NHTSA recall summary</p>
+    </section>
+
+    <section class="slide" data-note="분석의 전제를 못 박는 슬라이드입니다. 실시간 감정가가 아니라 샘플 기반 참고 서비스라고 선을 긋습니다.">
+      <span class="page-no">04</span>
+      <div class="kicker">분석 기준</div>
+      <h2>가격을 네 가지 관점으로 나눠서 봤습니다.</h2>
+      <p class="subtitle">가격 자체, 차량 조건, 상태 정보, 외부 위험 정보를 함께 비교했습니다.</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="accent-blue">가격</h3>
+          <p>일반 가격대와 초고가 매물을 구분했습니다.</p>
+        </div>
+        <div class="card">
+          <h3 class="accent-blue">차량 조건</h3>
+          <p>브랜드, 모델, 연식, 주행거리를 핵심 입력값으로 봤습니다.</p>
+        </div>
+        <div class="card">
+          <h3 class="accent-green">상태 정보</h3>
+          <p>사고 이력과 클린 타이틀 여부를 비교 기준에 포함했습니다.</p>
+        </div>
+        <div class="card">
+          <h3 class="accent-green">외부 정보</h3>
+          <p>EPA 연비와 NHTSA 리콜 정보는 추천과 판독에서 참고했습니다.</p>
+        </div>
+      </div>
+      <div class="note-bar">
+        실시간 시세 서비스가 아니라 샘플 데이터 기반 참고 서비스입니다. 모델 결과는 감정가가 아니라 조건별 기준선으로 해석했습니다.
+      </div>
+    </section>
+
+    <section class="slide" data-note="환율 질문 대비 슬라이드입니다. 1 USD = 1,532.52원 고정 환율, price_usd 보존을 말하면 됩니다.">
+      <span class="page-no">05</span>
+      <div class="kicker">분석 준비</div>
+      <h2>문자로 들어온 매물 정보를 모델이 읽을 수 있게 정리했습니다.</h2>
+      <p class="subtitle">가격과 주행거리를 숫자로 바꾸고, 사고 여부 같은 판단 변수를 추가했습니다.</p>
+      <div class="flow">
+        <div class="flow-card">
+          <h3>문자열 정제</h3>
+          <p>$, 쉼표, mi. 제거 후 숫자형 변환</p>
+        </div>
+        <div class="flow-card">
+          <h3>통화 통일</h3>
+          <p>price_usd 보존, 고정 환율로 원화 변환</p>
+        </div>
+        <div class="flow-card">
+          <h3>결측 처리</h3>
+          <p>연료, 사고, 타이틀, 변속기 Unknown 처리</p>
+        </div>
+        <div class="flow-card">
+          <h3>변수 추가</h3>
+          <p>차량 나이, 주행거리당 가격, 사고 여부</p>
+        </div>
+      </div>
+      <div class="split">
+        <div>
+          <p class="section-title">모델에 넣기 전 정리</p>
+          <ul class="bullets">
+            <li>연식과 주행거리는 숫자형 변수로 사용</li>
+            <li>브랜드, 모델, 연료, 변속기 등은 원-핫 인코딩</li>
+            <li>가격 분포가 한쪽으로 치우쳐 초고가 매물을 별도 처리</li>
+            <li>상위 1% 초고가 매물 93건은 학습에서 제외</li>
+            <li>일반 가격대 기준을 보기 위해 초고가 매물 영향 제거</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 class="accent-orange">환율 기준</h3>
+          <p>1 USD = 1,532.52원 (2026-06-04)</p>
+          <p style="margin-top:10px;">원화 가격은 실제 환율 연동 시세가 아니라 발표와 비교를 쉽게 하기 위한 변환값입니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-note="그래프 해석을 말로 풀어주세요. 고가 브랜드가 평균 상위권이고, 최신 연식일수록 대체로 가격이 높다는 흐름입니다.">
+      <span class="page-no">06</span>
+      <div class="kicker">EDA 발견</div>
+      <h2>가격은 브랜드와 연식에 따라 확실히 달라졌습니다.</h2>
+      <p class="subtitle">초고가 매물 영향이 있어 일반 가격대와 구분해 해석했습니다.</p>
+      <div class="chart-grid">
+        <div class="chart-box">
+          <p class="chart-title">브랜드별 평균 가격 (백만원)</p>
+          <div class="bar-row"><span>Porsche</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span>149</span></div>
+          <div class="bar-row"><span>Land Rover</span><div class="bar-track"><div class="bar-fill" style="width:87%"></div></div><span>129</span></div>
+          <div class="bar-row"><span>Cadillac</span><div class="bar-track"><div class="bar-fill" style="width:73%"></div></div><span>109</span></div>
+          <div class="bar-row"><span>Mercedes</span><div class="bar-track"><div class="bar-fill" style="width:68%"></div></div><span>101</span></div>
+          <div class="bar-row"><span>BMW</span><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><span>86</span></div>
+          <div class="bar-row"><span>Audi</span><div class="bar-track"><div class="bar-fill" style="width:52%"></div></div><span>77</span></div>
+          <p class="chart-note">고가 브랜드가 평균 가격 상위권에 위치해 브랜드가 중요한 변수임을 확인했습니다.</p>
+        </div>
+        <div class="chart-box">
+          <p class="chart-title">연식별 평균 가격 추세 (백만원)</p>
+          <svg class="line-chart" viewBox="0 0 460 260" role="img" aria-label="연식별 평균 가격 추세">
+            <line x1="44" y1="210" x2="430" y2="210" stroke="#d6d2c8" />
+            <line x1="44" y1="30" x2="44" y2="210" stroke="#d6d2c8" />
+            <polyline points="44,178 82,170 120,164 158,152 196,145 234,132 272,120 310,102 348,86 386,76 424,58" fill="none" stroke="#e88741" stroke-width="4" />
+            <g fill="#e88741">
+              <circle cx="44" cy="178" r="5" /><circle cx="82" cy="170" r="5" /><circle cx="120" cy="164" r="5" />
+              <circle cx="158" cy="152" r="5" /><circle cx="196" cy="145" r="5" /><circle cx="234" cy="132" r="5" />
+              <circle cx="272" cy="120" r="5" /><circle cx="310" cy="102" r="5" /><circle cx="348" cy="86" r="5" />
+              <circle cx="386" cy="76" r="5" /><circle cx="424" cy="58" r="5" />
+            </g>
+            <text class="axis-label" x="38" y="228">2015</text>
+            <text class="axis-label" x="224" y="228">2020</text>
+            <text class="axis-label" x="404" y="228">2026</text>
+            <text class="axis-label" x="8" y="36">높음</text>
+            <text class="axis-label" x="8" y="210">낮음</text>
+          </svg>
+          <p class="chart-note">대체로 최신 연식일수록 가격이 높지만, 일부 연도는 샘플 구성과 고가 매물 영향으로 흔들릴 수 있습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-note="MAE가 작지 않다는 점을 먼저 인정하면 모델 질문 방어가 됩니다. 비교 모델은 향후 개선점으로 처리합니다.">
+      <span class="page-no">07</span>
+      <div class="kicker">예측 모델</div>
+      <h2>모델의 역할은 정답 맞히기가 아니라 비교 기준을 주는 것입니다.</h2>
+      <p class="subtitle">참고 가격대와 유사 매물 평균을 함께 보여줘서 결과를 해석하게 구성했습니다.</p>
+      <div class="metric-row four">
+        <div class="metric orange">
+          <strong>1,498만원</strong>
+          <span>평균 절대 오차</span>
+          <small>정밀 감정가보다는 참고 가격대 용도</small>
+        </div>
+        <div class="metric green">
+          <strong>0.677</strong>
+          <span>R² 설명력</span>
+          <small>조건이 가격 변동의 일부를 설명</small>
+        </div>
+        <div class="metric">
+          <strong>93</strong>
+          <span>학습 제외 매물</span>
+          <small>상위 1% 초고가</small>
+        </div>
+        <div class="metric blue">
+          <strong>RandomForest</strong>
+          <span>모델</span>
+          <small>RandomForestRegressor</small>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <p class="section-title">RandomForest를 쓴 이유</p>
+          <ul class="bullets">
+            <li>브랜드와 모델처럼 범주형 변수가 많음</li>
+            <li>연식, 주행거리, 사고 이력 조합에 따라 가격이 달라짐</li>
+            <li>조건 조합별 가격 패턴을 비교적 유연하게 반영</li>
+          </ul>
+        </div>
+        <div>
+          <p class="section-title">결과 해석</p>
+          <ul class="bullets">
+            <li>정밀 감정가보다는 참고 가격대 모델로 해석</li>
+            <li>조건별 참고 가격대를 제시하는 용도로 해석</li>
+            <li>향후 Linear Regression, XGBoost와 비교 필요</li>
+          </ul>
+        </div>
+      </div>
+      <p class="source">Source: Kaggle - Used Car Price Prediction Dataset by Taeef Najib<br />Additional data: CARFAX sample, EPA vehicle data, NHTSA recall summary</p>
+    </section>
+
+    <section class="slide" data-note="시연은 네 화면만 보여주면 됩니다. 게임과 한국 기준 보정은 보조 기능으로 말만 해도 충분합니다.">
+      <span class="page-no">08</span>
+      <div class="kicker">앱 시연</div>
+      <h2>분석 결과를 사용자가 직접 눌러보고 비교할 수 있게 했습니다.</h2>
+      <p class="subtitle">발표에서는 네 화면만 빠르게 보여주면 흐름이 잡힙니다.</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="accent-blue">EDA / 시각화</h3>
+          <p>가격 분포와 브랜드·연식별 차이를 먼저 확인합니다.</p>
+        </div>
+        <div class="card">
+          <h3 class="accent-green">조건 입력 / 참고 가격</h3>
+          <p>차량 조건을 넣고 참고 가격대와 유사 매물 평균을 확인합니다.</p>
+        </div>
+        <div class="card">
+          <h3 class="accent-orange">추천</h3>
+          <p>예산 이하에서 최신 연식과 낮은 주행거리 차량을 우선 확인합니다.</p>
+        </div>
+        <div class="card">
+          <h3 class="accent-red">구입 판독</h3>
+          <p>예측가 대비 가격, 사고, 연비, 리콜 정보를 함께 비교합니다.</p>
+        </div>
+      </div>
+      <div class="note-bar">데모 순서: EDA 분포 → 브랜드/연식 필터 → 조건 입력 / 참고 가격 → 예산 이하 추천</div>
+
+    <section class="slide dark" data-note="마지막은 한계 인정이 중요합니다. 옵션, 지역, 판매자, 실시간성, 한국 시장 차이를 차분히 말하면 신뢰도가 올라갑니다.">
+      <p class="cover-label">결론</p>
+      <h1>중고차 가격을 조건별로 비교하고 판단하는 서비스로 만들었습니다.</h1>
+      <ul class="dark-list">
+        <li>구현한 것: EDA, 시각화, 참고 가격대, 추천, 구입 판독</li>
+        <li>확인한 것: 브랜드, 연식, 주행거리, 사고 이력에 따른 가격 차이</li>
+        <li>한계: 옵션·지역·판매자 정보와 실시간성이 부족함</li>
+        <li>주의: 해외 데이터 기반이라 한국 원화 가격 해석에는 시장 차이가 있음</li>
+        <li>개선 방향: 실제 매물, 옵션 데이터, 비교 모델을 추가해 신뢰도 높이기</li>
+      </ul>
+      <p class="presenter">감사합니다</p>
+    </section>
+
+    <div class="notes" id="notes" aria-live="polite"></div>
+    <div class="controls" aria-label="슬라이드 조작">
+      <button type="button" id="prev" aria-label="이전 슬라이드">‹</button>
+      <span id="counter">1 / 9</span>
+      <button type="button" id="next" aria-label="다음 슬라이드">›</button>
+      <button type="button" id="noteToggle" aria-label="발표자 메모">N</button>
+    </div>
+    <div class="progress"><span id="progress"></span></div>
+  </main>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const counter = document.getElementById("counter");
+    const progress = document.getElementById("progress");
+    const notes = document.getElementById("notes");
+    let current = 0;
+    let notesOpen = false;
+
+    function render() {
+      slides.forEach((slide, index) => {
+        slide.classList.toggle("active", index === current);
+      });
+      counter.textContent = `${current + 1} / ${slides.length}`;
+      progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+      const note = slides[current].dataset.note || "";
+      notes.innerHTML = `<strong>발표자 메모</strong>${note}`;
+      notes.classList.toggle("show", notesOpen);
+      document.title = `${current + 1}. 중고차 데이터 분석 발표`;
+    }
+
+    function go(delta) {
+      current = Math.max(0, Math.min(slides.length - 1, current + delta));
+      render();
+    }
+
+    document.getElementById("prev").addEventListener("click", () => go(-1));
+    document.getElementById("next").addEventListener("click", () => go(1));
+    document.getElementById("noteToggle").addEventListener("click", () => {
+      notesOpen = !notesOpen;
+      render();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (["ArrowRight", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        go(1);
+      }
+      if (["ArrowLeft", "PageUp", "Backspace"].includes(event.key)) {
+        event.preventDefault();
+        go(-1);
+      }
+      if (event.key.toLowerCase() === "n") {
+        notesOpen = !notesOpen;
+        render();
+      }
+      if (event.key.toLowerCase() === "f") {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.();
+        } else {
+          document.exitFullscreen?.();
+        }
+      }
+      if (event.key === "Home") {
+        current = 0;
+        render();
+      }
+      if (event.key === "End") {
+        current = slides.length - 1;
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

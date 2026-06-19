@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>중고차 데이터 분석 및 가격 예측 서비스 기획서</title>
+  <link rel="stylesheet" href="docs/report.css" />
+</head>
+<body>
+<h1 id="_1">중고차 데이터 분석 및 가격 예측 서비스 기획서</h1>
+<h2 id="1">1. 프로젝트 개요</h2>
+<h3 id="_2">프로젝트명</h3>
+<p>중고차 데이터 분석 및 가격 예측 서비스</p>
+<h3 id="_3">한 줄 목표</h3>
+<p>중고차 매물 데이터를 분석해 가격 분포와 주요 요인을 확인하고, 사용자가 차량 조건을 입력하면 예상 가격을 볼 수 있는 Streamlit 웹 앱을 만든다.</p>
+<h3 id="_4">프로젝트 목적</h3>
+<p>중고차 가격은 브랜드, 모델, 연식, 주행거리, 연료 유형, 사고 이력 등 여러 조건에 따라 달라진다. 이 프로젝트에서는 그런 조건들이 가격과 어떤 관계가 있는지 데이터로 확인하고, 사용자가 직접 조건을 바꿔보면서 가격 패턴을 이해할 수 있게 하는 것을 목표로 한다.</p>
+<h2 id="2">2. 선택한 데이터</h2>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>데이터 파일</td>
+<td><code>data/used_cars.csv</code>, <code>data/enriched_used_cars.csv</code></td>
+</tr>
+<tr>
+<td>데이터 형식</td>
+<td>CSV</td>
+</tr>
+<tr>
+<td>데이터 크기</td>
+<td>원본 4,009행, 보강 데이터 기준 9,273행</td>
+</tr>
+<tr>
+<td>주요 컬럼</td>
+<td>브랜드, 모델, 연식, 주행거리, 연료 유형, 엔진, 변속기, 색상, 사고 이력, 클린 타이틀, 가격</td>
+</tr>
+<tr>
+<td>예측 대상</td>
+<td><code>price</code></td>
+</tr>
+<tr>
+<td>원본 출처</td>
+<td>Kaggle - Used Car Price Prediction Dataset by Taeef Najib</td>
+</tr>
+<tr>
+<td>보강 출처</td>
+<td>reBrowser CARFAX sample dataset, EPA vehicle data, NHTSA recall data</td>
+</tr>
+</tbody>
+</table>
+<p>현재 앱은 <code>data/enriched_used_cars.csv</code>가 있으면 이 파일을 우선 사용한다. Kaggle 원본 중고차 데이터 4,009건에 2024~2026년 CARFAX 샘플 매물을 추가하고, EPA 연비 정보와 NHTSA 리콜 요약 정보를 매칭해 추천과 구입 판독 기능에 사용한다.</p>
+<h3 id="_5">주요 컬럼 설명</h3>
+<table>
+<thead>
+<tr>
+<th>컬럼명</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>brand</code></td>
+<td>차량 브랜드</td>
+</tr>
+<tr>
+<td><code>model</code></td>
+<td>차량 모델명</td>
+</tr>
+<tr>
+<td><code>model_year</code></td>
+<td>차량 연식</td>
+</tr>
+<tr>
+<td><code>milage</code></td>
+<td>주행거리</td>
+</tr>
+<tr>
+<td><code>fuel_type</code></td>
+<td>연료 유형</td>
+</tr>
+<tr>
+<td><code>transmission</code></td>
+<td>변속기</td>
+</tr>
+<tr>
+<td><code>accident</code></td>
+<td>사고 또는 손상 이력</td>
+</tr>
+<tr>
+<td><code>clean_title</code></td>
+<td>클린 타이틀 여부</td>
+</tr>
+<tr>
+<td><code>price</code></td>
+<td>차량 가격</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 풀고 싶은 문제</h2>
+<h3 id="_6">문제정의</h3>
+<p>중고차 데이터를 이용해 차량 조건에 따른 가격 차이를 확인하고, 사용자가 입력한 차량 정보에 대해 예상 가격을 제공하고 싶다.</p>
+<h3 id="_7">분석 질문</h3>
+<ul>
+<li>중고차 가격은 어떤 범위에 많이 분포하는가?</li>
+<li>브랜드별 평균 가격은 어떻게 다른가?</li>
+<li>연식과 주행거리는 가격에 어떤 영향을 주는가?</li>
+<li>사고 이력 여부에 따라 가격 차이가 생기는가?</li>
+<li>사용자가 입력한 차량 조건으로 가격을 어느 정도 예측할 수 있는가?</li>
+</ul>
+<h2 id="4">4. 만들 서비스</h2>
+<p>프로젝트는 Streamlit 기반 멀티페이지 웹 앱으로 구성한다.</p>
+<h3 id="41-eda">4.1 EDA 페이지</h3>
+<ul>
+<li>전체 매물 수, 평균 가격, 평균 주행거리, 평균 연식 표시</li>
+<li>데이터 미리보기</li>
+<li>결측치 확인</li>
+<li>주요 수치형 변수 통계 확인</li>
+<li>전체 가격 분포, 일반 가격대 세부 분포, 가격 구간별 매물 수 시각화</li>
+<li>가격 상위 1% 초고가 매물을 <code>비싼차 모음집</code>으로 별도 표시</li>
+</ul>
+<h3 id="42">4.2 시각화 페이지</h3>
+<ul>
+<li>브랜드, 연식, 가격, 주행거리, 연료 유형, 사고 이력 필터 제공</li>
+<li>가격 분포 히스토그램</li>
+<li>사고 이력별 가격 박스플롯</li>
+<li>브랜드별 평균 가격 그래프</li>
+<li>연식별 평균 가격 그래프</li>
+<li>주행거리와 가격의 산점도</li>
+<li>필터링 결과에 대한 문장형 인사이트 제공</li>
+</ul>
+<h3 id="43">4.3 모델/서비스 페이지</h3>
+<ul>
+<li>사용자가 차량 조건을 입력</li>
+<li>머신러닝 모델이 예상 가격 출력</li>
+<li>유사 조건 차량의 평균 가격 및 중앙값 제공</li>
+<li>모델 성능 지표 표시</li>
+<li>모델 학습에서 제외한 초고가 매물 목록 제공</li>
+</ul>
+<h3 id="44">4.4 가격 예측 게임 페이지</h3>
+<ul>
+<li>실제 차량 정보를 보고 사용자가 가격을 추측</li>
+<li>입력 가격이 실제 가격보다 낮으면 <code>UP</code>, 높으면 <code>DOWN</code> 표시</li>
+<li>10번의 기회 제공</li>
+<li>1번째 시도 10점, 이후 시도마다 1점씩 감소</li>
+<li>사용자가 데이터의 가격 패턴을 게임처럼 체험 가능</li>
+</ul>
+<h2 id="5">5. 사용 기술</h2>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>사용 기술</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>개발 언어</td>
+<td>Python</td>
+</tr>
+<tr>
+<td>웹 앱</td>
+<td>Streamlit</td>
+</tr>
+<tr>
+<td>데이터 처리</td>
+<td>pandas, numpy</td>
+</tr>
+<tr>
+<td>시각화</td>
+<td>plotly</td>
+</tr>
+<tr>
+<td>머신러닝</td>
+<td>scikit-learn</td>
+</tr>
+<tr>
+<td>모델</td>
+<td>RandomForestRegressor</td>
+</tr>
+<tr>
+<td>문서화</td>
+<td>Markdown, PDF</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6">6. 데이터 전처리 계획</h2>
+<ul>
+<li><code>price</code>: <code>$10,300</code> 형식의 문자열에서 <code>$</code>, <code>,</code> 제거 후 숫자형 변환</li>
+<li><code>milage</code>: <code>51,000 mi.</code> 형식의 문자열에서 쉼표와 단위 제거 후 숫자형 변환</li>
+<li><code>model_year</code>: 정수형으로 변환</li>
+<li>결측값: 연료 유형, 사고 이력, 클린 타이틀, 변속기 등은 <code>Unknown</code>으로 대체</li>
+<li>파생 변수 생성:</li>
+<li><code>car_age</code>: 차량 나이</li>
+<li><code>price_per_mile</code>: 주행거리 1마일당 가격</li>
+<li><code>accident_flag</code>: 사고 이력 여부</li>
+<li><code>brand_model</code>: 브랜드와 모델 결합</li>
+</ul>
+<h2 id="7">7. 모델링 계획</h2>
+<h3 id="_8">예측 목표</h3>
+<p>차량 조건을 입력받아 중고차 예상 가격을 예측한다.</p>
+<h3 id="_9">입력 변수</h3>
+<ul>
+<li>브랜드</li>
+<li>모델</li>
+<li>연식</li>
+<li>주행거리</li>
+<li>연료 유형</li>
+<li>변속기</li>
+<li>사고 이력</li>
+<li>클린 타이틀 여부</li>
+</ul>
+<h3 id="_10">모델 구성</h3>
+<ul>
+<li>수치형 변수: 표준화</li>
+<li>범주형 변수: 원-핫 인코딩</li>
+<li>예측 모델: RandomForestRegressor</li>
+<li>타깃 변환: 가격 분포 왜곡을 줄이기 위해 로그 변환 적용</li>
+<li>이상치 처리: 가격 상위 1% 초고가 매물은 학습에서 제외</li>
+</ul>
+<h2 id="8">8. 예상 결과물</h2>
+<ul>
+<li>Streamlit 웹 앱</li>
+<li>EDA 페이지</li>
+<li>시각화 페이지</li>
+<li>모델/서비스 페이지</li>
+<li>가격 예측 게임 페이지</li>
+<li>차량 추천 페이지</li>
+<li>외부 데이터 및 한국 기준 보정 페이지</li>
+<li>보고서.md 및 보고서.pdf</li>
+<li>발표 요약 문서</li>
+<li>requirements.txt</li>
+</ul>
+<h2 id="9">9. 기대 효과</h2>
+<ul>
+<li>중고차 가격에 영향을 주는 주요 요인을 시각적으로 확인할 수 있다.</li>
+<li>사용자는 필터로 원하는 조건의 차량 가격대를 탐색할 수 있다.</li>
+<li>머신러닝 예측 모델을 통해 조건별 예상 가격을 확인할 수 있다.</li>
+<li>가격 예측 게임을 통해 데이터 분석 결과를 더 흥미롭게 체험할 수 있다.</li>
+<li>EDA, 시각화, 머신러닝, 서비스 구현 과정을 하나의 프로젝트로 정리할 수 있다.</li>
+</ul>
+<h2 id="10">10. 예상 난관 및 해결 방안</h2>
+<table>
+<thead>
+<tr>
+<th>예상 난관</th>
+<th>해결 방안</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>초고가 차량 때문에 평균과 모델 성능이 왜곡될 수 있음</td>
+<td>가격 상위 1% 매물을 별도로 분리하고, 모델 학습에서는 제외</td>
+</tr>
+<tr>
+<td>범주형 변수가 많아 모델 입력이 복잡함</td>
+<td>OneHotEncoder를 사용해 자동 변환</td>
+</tr>
+<tr>
+<td>사용자가 예측 결과를 이해하기 어려울 수 있음</td>
+<td>유사 조건 차량 평균 가격과 중앙값을 함께 제공</td>
+</tr>
+<tr>
+<td>단순 분석 앱처럼 보일 수 있음</td>
+<td>가격 예측 서비스와 가격 예측 게임을 추가해 직접 써보는 기능 강화</td>
+</tr>
+</tbody>
+</table>
+<h2 id="11">11. 프로젝트 일정</h2>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>작업 내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1단계</td>
+<td>데이터 확인 및 문제정의 작성</td>
+</tr>
+<tr>
+<td>2단계</td>
+<td>데이터 전처리 및 EDA 구현</td>
+</tr>
+<tr>
+<td>3단계</td>
+<td>가격 분포, 브랜드별, 연식별, 사고 이력별 시각화 구현</td>
+</tr>
+<tr>
+<td>4단계</td>
+<td>가격 예측 모델 학습 및 서비스 페이지 구현</td>
+</tr>
+<tr>
+<td>5단계</td>
+<td>비싼차 모음집과 가격 예측 게임 추가</td>
+</tr>
+<tr>
+<td>6단계</td>
+<td>보고서, 발표 요약, README 정리</td>
+</tr>
+</tbody>
+</table>
+<h2 id="12">12. 최종 서비스 흐름</h2>
+<ol>
+<li>사용자가 Streamlit 앱 실행</li>
+<li>EDA 페이지에서 데이터 구조와 가격 분포 확인</li>
+<li>시각화 페이지에서 조건별 가격 패턴 탐색</li>
+<li>모델/서비스 페이지에서 차량 조건 입력 후 예상 가격 확인</li>
+<li>가격 예측 게임 페이지에서 실제 차량 가격을 UP/DOWN 방식으로 추측</li>
+<li>보고서와 발표 문서로 프로젝트 결과 정리</li>
+</ol>
+</body>
+</html>

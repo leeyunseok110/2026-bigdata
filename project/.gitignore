@@ -1,0 +1,33 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.streamlit/secrets.toml
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Node dependencies
+node_modules/
+
+# Large external raw data downloads
+data/external/epa_vehicles.csv.zip
+data/external/epa_vehicles/
+data/external/nhtsa_recalls_post_2010.zip
+data/external/nhtsa_recalls_post_2010/
+data/external/carfax_latest/raw/
+
+# Temporary or local export artifacts
+*.alyac
+*.tmp
+*.bak
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

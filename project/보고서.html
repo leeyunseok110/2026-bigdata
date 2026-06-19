@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>중고차 데이터 분석 및 가격 예측 서비스 보고서</title>
+  <link rel="stylesheet" href="docs/report.css" />
+</head>
+<body>
+<h1 id="_1">중고차 데이터 분석 및 가격 예측 서비스 보고서</h1>
+<h2 id="1">1. 문제정의</h2>
+<p>이번 프로젝트는 중고차 매물 데이터를 이용해 차량 조건에 따라 가격이 어떻게 달라지는지 확인하고, 사용자가 입력한 조건으로 예상 가격을 볼 수 있는 Streamlit 웹 서비스를 만드는 것을 목표로 했다.</p>
+<ul>
+<li>사용 데이터: <code>data/used_cars.csv</code>, <code>data/enriched_used_cars.csv</code></li>
+<li>데이터 형식: CSV</li>
+<li>데이터 규모: 원본 4,009행, 보강 데이터 기준 9,273행</li>
+<li>데이터 출처: Kaggle - Used Car Price Prediction Dataset by Taeef Najib, reBrowser CARFAX sample dataset, EPA vehicle data, NHTSA recall data</li>
+<li>라이선스: 기본 매물 데이터는 Kaggle 데이터셋 기준을 따르고, CARFAX/EPA/NHTSA 데이터는 보조 데이터로 사용</li>
+<li>예측 대상: <code>price</code></li>
+<li>서비스 형태: Streamlit 기반 EDA, 시각화, 가격 예측 웹 앱</li>
+<li>추가 기능: 업/다운 가격 예측 게임, 가성비 차량 추천, 외부 데이터 기반 구입 판독, 한국 기준 시세 보정</li>
+</ul>
+<h2 id="2">2. 데이터 전처리</h2>
+<p>원본 데이터에서는 가격과 주행거리가 문자열로 들어와 있어서, 분석과 모델 학습 전에 숫자로 바꾸는 작업이 필요했다.</p>
+<ul>
+<li><code>price</code>: <code>$10,300</code> 형식에서 <code>$</code>, <code>,</code> 제거 후 숫자형 변환</li>
+<li><code>price_usd</code>: 원본 달러 가격 보존</li>
+<li><code>price</code>: 앱 표시와 예측 기준을 맞추기 위해 원화로 변환</li>
+<li><code>milage</code>: <code>51,000 mi.</code> 형식에서 <code>,</code>, <code>mi.</code> 제거 후 숫자형 변환</li>
+<li><code>model_year</code>: 정수형 변환</li>
+<li>결측값: <code>fuel_type</code>, <code>accident</code>, <code>clean_title</code>, <code>transmission</code> 등은 <code>Unknown</code>으로 대체</li>
+<li>파생 변수: <code>car_age</code>, <code>price_per_mile</code>, <code>accident_flag</code>, <code>brand_model</code></li>
+<li>외부 데이터: EPA 연비, NHTSA 리콜 수, CARFAX 최신 샘플 매물 정보를 매칭해 추천과 판독 기능에 사용</li>
+</ul>
+<h2 id="3-eda">3. EDA 발견</h2>
+<ul>
+<li>가격은 대부분 일반적인 가격대에 몰려 있었지만, 일부 초고가 차량이 평균을 크게 흔들 수 있었다.</li>
+<li>브랜드별 평균 가격과 매물 수에는 차이가 있었다.</li>
+<li>연식이 최신일수록 평균 가격이 높아지는 경향이 보였다.</li>
+<li>주행거리가 늘어날수록 가격은 낮아지는 흐름을 확인했다.</li>
+<li>사고 또는 손상 이력 여부도 가격 비교에서 중요한 변수로 볼 수 있었다.</li>
+</ul>
+<h2 id="4">4. 시각화 구성</h2>
+<p>Streamlit 앱의 시각화 페이지에서는 다음 그래프를 제공한다.</p>
+<ul>
+<li>전체 가격 분포 히스토그램</li>
+<li>일반 가격대 세부 분포 히스토그램</li>
+<li>가격 구간별 매물 수 막대그래프</li>
+<li>가격 상위 1% 초고가 매물을 따로 보여주는 비싼차 모음집</li>
+<li>브랜드별 평균 가격 막대그래프</li>
+<li>연식별 평균 가격 선 그래프</li>
+<li>주행거리와 가격의 산점도</li>
+<li>사고 이력 여부별 가격 박스플롯</li>
+</ul>
+<h2 id="5">5. 모델 및 서비스</h2>
+<p>가격 예측 서비스는 <code>RandomForestRegressor</code>를 사용해 구현했다.</p>
+<ul>
+<li>입력 변수: 브랜드, 모델, 연식, 주행거리, 연료 유형, 변속기, 사고 이력, 클린 타이틀 여부</li>
+<li>예측값: 예상 중고차 가격</li>
+<li>전처리: 수치형 변수 표준화, 범주형 변수 원-핫 인코딩</li>
+<li>이상치 처리: 가격 상위 1% 초고가 매물은 모델 학습에서 제외</li>
+<li>제외된 초고가 매물 93건은 비싼차 모음집으로 별도 표시</li>
+</ul>
+<p>모델 성능은 다음과 같다.</p>
+<ul>
+<li>평균 절대 오차: 약 <code>14,982,985원</code> (약 <code>$9,777</code>)</li>
+<li>R²: 약 <code>0.677</code></li>
+</ul>
+<p>성능 지표는 현재 앱에서 사용하는 보강 데이터(<code>data/enriched_used_cars.csv</code>)와 원화 변환 가격 기준으로 다시 계산했다.</p>
+<h2 id="6">6. 결론</h2>
+<p>이번 프로젝트에서는 EDA, 시각화, 머신러닝 예측 기능을 하나의 Streamlit 앱으로 묶었다. 사용자는 필터로 중고차 데이터를 살펴보고, 차량 조건을 입력해 예상 가격을 확인할 수 있다. 단순히 그래프를 보여주는 데서 끝내지 않고, 사용자가 직접 눌러보면서 판단할 수 있는 서비스 형태로 만든 점이 의미 있었다.</p>
+<p>가격 예측 게임도 추가해서 사용자가 실제 차량 정보를 보고 가격을 추측해볼 수 있게 했다. 또 가성비 차량 추천, 외부 데이터 기반 구입 판독, 한국 기준 시세 보정 기능을 붙여서 분석 결과가 실제 의사결정에 조금 더 가깝게 이어지도록 했다.</p>
+<h2 id="7">7. 한계 및 개선 방향</h2>
+<ul>
+<li>트림, 옵션, 사고 수리 범위 정보가 부족해 실제 가격을 완전히 설명하기는 어렵다.</li>
+<li>판매 지역, 판매 시점, 개인/딜러 여부, 인증중고차 여부를 반영하지 못했다.</li>
+<li>Kaggle 기반 샘플 데이터라 현재 실시간 시세와 차이가 있을 수 있다.</li>
+<li>해외 데이터 기반이라 한국 원화 가격으로 해석할 때 환율과 시장 차이가 있다.</li>
+<li>기본 매물 데이터와 보조 데이터의 성격이 다르므로 출처를 구분해서 설명해야 한다.</li>
+<li>희소 모델이나 초고가 차량은 예측 오차가 커질 수 있다.</li>
+<li>향후 Linear Regression, XGBoost 등과 비교해 모델 선택 근거를 강화할 필요가 있다.</li>
+<li>더 많은 실제 매물 데이터와 옵션 정보를 확보하면 예측 신뢰도를 개선할 수 있다.</li>
+</ul>
+</body>
+</html>
